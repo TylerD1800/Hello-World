@@ -1,0 +1,241 @@
+import pygame,sys,random,time
+from pygame.locals import *
+
+pygame.init()
+
+#Initiate the window#
+winHeight = 300
+winWidth = 500
+winSurface = pygame.display.set_mode((winWidth,winHeight),0,32)
+pygame.display.set_caption('Pong')
+mainClock = pygame.time.Clock()
+
+#Define fonts#
+fontStyle50 = pygame.font.SysFont(None,50)
+fontstyle30 = pygame.font.SysFont(None,30)
+scoreFont = pygame.font.SysFont('sfcompactroundedregularotf',25)
+
+#Direction Variables#
+UL = 'UpLeft'
+DL = 'DownLeft'
+UR = 'UpRight'
+DR = 'DownRight'
+
+
+#Setup Colors#
+BLACK = (0,0,0)
+WHITE = (255,255,255)
+RED = (255,0,0)
+GREEN = (0,255,0)
+BLUE = (0,0,255)
+YELLOW = (255,255,102)
+
+#Define the start screen#
+def startScreen():
+    while True:
+        winSurface.fill(WHITE)
+        #Defines and draws a start button#
+        button = pygame.Rect(winWidth/2-55,(winHeight/2.5)+63,100,40)
+        pygame.draw.rect(winSurface,BLUE,button)
+        msg1 = fontstyle30.render('PLAY',True,BLACK)
+        winSurface.blit(msg1,(winWidth/2-30,(winHeight/2.5)+75))
+        #Defines and draws a welcome message# 
+        msg = fontStyle50.render('Welcome to PONG!',True,BLACK)
+        winSurface.blit(msg,(winWidth/5,winHeight/2.5))
+        #Update the Display#
+        pygame.display.update()
+        #Defines which keys starts the game#
+        x,y = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == K_p:
+                    gameloop()
+            #Click to start game#
+            if event.type == pygame.MOUSEBUTTONUP:
+                if (button.bottom > y) and (button.top < y) and (button.left < x) and (button.right > x):
+                     gameloop()
+                    
+
+#Define a game over loop#
+def gameOver():
+    while True:
+        winSurface.fill(WHITE)
+        msg = fontStyle50.render('GAME OVER',True,RED)
+        winSurface.blit(msg,(winWidth/3.5,winHeight/2.5))
+        pygame.display.update()
+        #Defines which keys exit and which restarts the game#
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+                if event.key == K_q:
+                    pygame.quit()
+                    sys.exit()
+                if event.key == K_p:
+                    gameloop()
+
+#A function which will change the direction of the ball#
+def changeDirection(b,player,comp):
+    #Check if the box has moved out of the top of the window#
+    if b['rect'].top < 5:
+        if b['dir'] == UL:
+            b['dir'] = DL
+        if b['dir'] == UR:
+            b['dir'] = DR
+    #Check if the box has moved out of the bottom of the window#
+    if b['rect'].bottom > winHeight-5:
+        if b['dir'] == DL:
+            b['dir'] = UL
+        if b['dir'] == DR:
+            b['dir'] = UR
+    #Check if the box has moved out of the left of the window#
+    if b['rect'].left < 0:
+        gameOver()
+    #Check if the ball collides with the player#
+    if player.colliderect(b['rect']):
+        if b['dir'] == DR:
+            b['dir'] = DL
+        if b['dir'] == UR:
+            b['dir'] = UL
+    #Check if the ball has collided with the computer#
+    if comp.colliderect(b['rect']):
+        if b['dir'] == DL:
+            b['dir'] = DR
+        if b['dir'] == UL:
+            b['dir'] = UR
+    #Check if the box has moved out of the right of the window#
+    if b['rect'].right > winWidth:
+        gameOver()
+    
+
+#A function which actually moves the ball#
+def moveBall(b):
+    if b['dir'] == DL:
+        b['rect'].left -= b['speed']
+        b['rect'].top += b['speed']
+    if b['dir'] == DR:
+        b['rect'].left += b['speed']
+        b['rect'].top += b['speed']
+    if b['dir'] == UL:
+        b['rect'].left -= b['speed']
+        b['rect'].top -= b['speed']
+    if b['dir'] == UR:
+        b['rect'].left += b['speed']
+        b['rect'].top -= b['speed']
+
+#A function which prints the current score to the window surface#
+def displayScore(score):
+    msg = scoreFont.render('Score:'+str(score),True,YELLOW)
+    winSurface.blit(msg,(7,2))
+
+#A function which creates a really simple AI fr the computer#
+def compMove(comp,speed,b):
+    if b['dir'] == UL or b['dir'] == DL:
+        if comp.top < b['rect'].top and comp.bottom < winHeight:
+            comp.top += speed
+        if comp.bottom > b['rect'].bottom and comp.top > 0:
+            comp.top -= speed
+
+
+
+def gameloop():
+
+    #Movement Variables#
+    playerSpeed = 7
+    compSpeed = playerSpeed
+    MoveUp = False
+    MoveDown = False
+
+    #Initialize the score count#
+    scoreCount = 0
+    
+    #Define the Player Rectangle#
+    player = pygame.Rect(winWidth-10,winHeight/2,5,60)
+    #Define the computer Rectangle#
+    compRect = pygame.Rect(5,winHeight/2,5,60)
+
+    #Define the Ball#
+    ballSize = 10
+    
+    ball = {'rect':pygame.Rect(winWidth/2,winHeight/2,ballSize,ballSize),
+            'dir':random.choice([UL,DL,UR,UL]),'color':BLUE,'speed':3}
+
+    #Define the Walls#
+    walls = [
+    pygame.Rect(0,0,winWidth,5),
+    #pygame.Rect(0,0,5,winHeight),
+    pygame.Rect(0,winHeight-5,winWidth,5),
+    ]
+    
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            #Setting KEYDOWN Key Commands#
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+                if event.key == K_UP:
+                    MoveUp = True
+                    MoveDown = False
+                if event.key == K_DOWN:
+                    MoveDown = True
+                    MoveUp = False
+            #Setting KEYUP Key Commands#
+            if event.type == KEYUP:
+                if event.key == K_UP:
+                    MoveUp = False
+                    MoveDown = False
+                if event.key == K_DOWN:
+                    MoveUp = False
+                    MoveDown = False
+
+        #Set up the movement of the player rectangle#
+        if MoveUp and player.top > 5:
+            player.top -= playerSpeed
+        if MoveDown and player.bottom < winHeight-5:
+            player.top += playerSpeed
+
+        #Fill the window with Black#
+        winSurface.fill(BLACK)
+
+        #Draw the Player Rectangle on the Window Surface#
+        pygame.draw.rect(winSurface,WHITE,player)
+
+        #Draw the computer Rectangle on the window Surface#
+        pygame.draw.rect(winSurface,WHITE,compRect)
+
+        #Draw the Walls on the Window Surface#
+        for wall in walls:
+            pygame.draw.rect(winSurface,WHITE,wall)
+
+        #Draw the Ball on the Window Surface#
+        pygame.draw.rect(winSurface,ball['color'],ball['rect'])
+
+        #Control the Movement of the Ball#
+        changeDirection(ball,player,compRect)
+        moveBall(ball)
+
+        #Calls the function which moves the computer player#
+        compMove(compRect,compSpeed,ball)
+
+        #Calls the function to display the current score count#
+        if player.colliderect(ball['rect']):
+            scoreCount += 1
+            #Adds dificulty as the game progresses#
+            if scoreCount % 5 == 0:
+                ball['speed'] += 1
+        displayScore(scoreCount)
+
+        
+        pygame.display.update()
+        mainClock.tick(60)
+
+    pygame.quit()
+    sys.exit()
+
+startScreen()
